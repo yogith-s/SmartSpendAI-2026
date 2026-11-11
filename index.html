@@ -1,1 +1,199 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartSpend AI</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f3f5fa;
+  color: #202b42;
+}
+header {
+  background: #172554;
+  color: white;
+  padding: 24px 7%;
+}
+header h1 { margin: 0; }
+header p { color: #cbd5e1; }
+main { max-width: 1000px; margin: 30px auto; padding: 15px; }
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(190px,1fr));
+  gap: 15px;
+}
+.card {
+  background: white;
+  padding: 22px;
+  border-radius: 12px;
+  box-shadow: 0 3px 12px #0000000c;
+}
+.card h3 { color: #64748b; font-size: 14px; }
+.amount { font-size: 27px; font-weight: bold; }
+section {
+  background: white;
+  margin-top: 22px;
+  padding: 22px;
+  border-radius: 12px;
+}
+input, select, button {
+  padding: 12px;
+  margin: 6px 3px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+}
+button {
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+  border: none;
+}
+button:hover { background: #1d4ed8; }
+li {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+#progress {
+  background: #e2e8f0;
+  height: 12px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+#bar { height: 12px; background: #16a34a; width: 0%; }
+</style>
+</head>
+<body>
+<header>
+  <h1>SmartSpend AI</h1>
+  <p>Your Smart Personal Expense Manager</p>
+</header>
+
+<main>
+  <div class="cards">
+    <div class="card">
+      <h3>Monthly Budget</h3>
+      <div class="amount" id="budget">₹5,000</div>
+    </div>
+    <div class="card">
+      <h3>Total Expenses</h3>
+      <div class="amount" id="spent">₹0</div>
+    </div>
+    <div class="card">
+      <h3>Remaining Balance</h3>
+      <div class="amount" id="remaining">₹5,000</div>
+    </div>
+    <div class="card">
+      <h3>Budget Used</h3>
+      <div class="amount" id="percentage">0%</div>
+    </div>
+  </div>
+
+  <section>
+    <h2>Monthly Budget</h2>
+    <input type="number" id="budgetInput" value="5000" min="1">
+    <button onclick="updateBudget()">Update Budget</button>
+    <div id="progress"><div id="bar"></div></div>
+  </section>
+
+  <section>
+    <h2>Add New Expense</h2>
+    <input id="description" placeholder="Expense description">
+    <input id="amount" type="number" placeholder="Amount" min="1">
+    <select id="category">
+      <option>Food</option>
+      <option>Transport</option>
+      <option>Education</option>
+      <option>Entertainment</option>
+      <option>Shopping</option>
+      <option>Other</option>
+    </select>
+    <button onclick="addExpense()">Add Expense</button>
+  </section>
+
+  <section>
+    <h2>Recent Transactions</h2>
+    <ul id="transactions"></ul>
+  </section>
+
+  <section>
+    <h2>Smart Spending Insight</h2>
+    <p id="insight">Start adding expenses to receive spending insights.</p>
+  </section>
+</main>
+
+<script>
+let budget = Number(localStorage.getItem("budget")) || 5000;
+let expenses = JSON.parse(localStorage.getItem("expenses") || "[]");
+
+const money = n => "₹" + n.toLocaleString("en-IN");
+
+function save() {
+  localStorage.setItem("budget", budget);
+  localStorage.setItem("expenses", JSON.stringify(expenses));
+}
+
+function updateBudget() {
+  const value = Number(document.getElementById("budgetInput").value);
+  if (!Number.isFinite(value) || value <= 0) {
+    alert("Enter a valid budget");
+    return;
+  }
+  budget = value;
+  save();
+  render();
+}
+
+function addExpense() {
+  const description = document.getElementById("description").value.trim();
+  const amount = Number(document.getElementById("amount").value);
+  const category = document.getElementById("category").value;
+
+  if (!description || !Number.isFinite(amount) || amount <= 0) {
+    alert("Enter a description and valid amount");
+    return;
+  }
+
+  expenses.unshift({description, amount, category});
+  save();
+
+  document.getElementById("description").value = "";
+  document.getElementById("amount").value = "";
+  render();
+}
+
+function render() {
+  const total = expenses.reduce((sum, item) => sum + item.amount, 0);
+  const remaining = budget - total;
+  const percent = budget ? total / budget * 100 : 0;
+
+  document.getElementById("budget").textContent = money(budget);
+  document.getElementById("spent").textContent = money(total);
+  document.getElementById("remaining").textContent = money(remaining);
+  document.getElementById("percentage").textContent = percent.toFixed(1) + "%";
+  document.getElementById("budgetInput").value = budget;
+  document.getElementById("bar").style.width = Math.min(percent, 100) + "%";
+
+  document.getElementById("transactions").innerHTML =
+    expenses.length
+      ? expenses.map(e =>
+        `<li>${e.description} — ${e.category} — ${money(e.amount)}</li>`
+      ).join("")
+      : "<li>No expenses added yet.</li>";
+
+  document.getElementById("insight").textContent =
+    total > budget
+      ? "You have exceeded your monthly budget. Review your spending."
+      : total > budget * 0.75
+        ? "You have used over 75% of your budget. Spend carefully."
+        : "Your spending is currently within budget. Keep saving!";
+}
+
+render();
+</script>
+</body>
+</html>
+
